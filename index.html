@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Linkingdom</title>
+    <link rel="stylesheet" href="css/ChessGame.css" />
+    <style>
+        html,
+        body {
+            font-family: monospace;
+            width: 100%;
+            height: 100%;
+            margin: 0px;
+        }
+    </style>
+    <script src="js/ChessGame.js"></script>
+</head>
+
+<body>
+    <script>
+        var turn = 0,
+            record = [],
+            linked = {},
+            domain = {},
+            chessboard = new Chessboard(19, 19, document.body);
+        function linking(chess, sym, needList) {
+            if (typeof chess == "string") return linking(chessboard.chesses[chess], sym, needList);
+            var linkedCrd = [],
+                dirLinkChess = chess.getChessesByRelCrd("O"),
+                rmtLinkChess = chess.getChessesByRelCrd("2O"),
+                abnLinkChess = chess.getChessesByRelCrd("IIH,IHH"),
+                isOwner = (chess) => chess && chess.symbol == sym && chess.color != "red",
+                isSpace = (chess) => chess && ((chess.symbol == "" || chess.symbol == sym) || chess.color == "red");
+            for (var i = 0; i < dirLinkChess.length; i++)
+                if (isOwner(dirLinkChess[i]))
+                    linkedCrd.push(dirLinkChess[i].crd);
+            for (var i = 0; i < rmtLinkChess.length; i++) {
+                if (!isOwner(rmtLinkChess[i])) continue;
+                if (isSpace(dirLinkChess[i]))
+                    linkedCrd.push(rmtLinkChess[i].crd);
+            }
+            for (var i = 0; i < abnLinkChess.length; i++) {
+                if (!isOwner(abnLinkChess[i])) continue;
+                var relCrd = chess.getRelCrdByChess(abnLinkChess[i]),
+                    SVChess = chess.getChessByRelCrd(relCrd.replace(/2./, "")),
+                    DVChess = chess.getChessByRelCrd(relCrd.replace(/1./, "")),
+                    DSVChess = chess.getChessByRelCrd(relCrd.replace(/1./, "").replace("2", "1")),
+                    HVChess = chess.getChessByRelCrd(relCrd.replace("2", "1").replace(/1/g, ""));
+                if ((isSpace(HVChess) && (isSpace(SVChess) || isSpace(DSVChess))) || isSpace(DSVChess) && isSpace(DVChess))
+                    linkedCrd.push(abnLinkChess[i].crd);
+            }
+            var crds = "";
+            for (var i = 0; i < linkedCrd.length; i++)
+                crds += linkedCrd[i] + (linkedCrd.length - 1 == i ? "" : ",");
+            console.log("turn " + turn + ":" + chess.crd + " is linked with " + crds);
+            if (needList) return linkedCrd;
+            return linkedCrd.length > 0;
+        }
+        function gameResult() {
+            linked = { O: [], X: [], all: [] };
+            domain = { O: [], X: [], public: [], unknown: [] };
+            if (turn < 2) return;
+            for (var s = 2; s < turn; s++) {
+                chessboard.chesses[record[s]].color = "";
+                chessboard.chesses[record[s]].background = "";
+            }
+            for (var s = 0; s < 2; s++) {
+                relateLinker(record[s], s % 2 == 0 ? "O" : "X");
+                chessboard.chesses[record[s]].color = "blue";
+                chessboard.chesses[record[s]].background = "";
+            }
+            var notLinkedFirst = false;
+            for (var s = 2; s < turn; s++) {
+                var sym = s % 2 == 0 ? "O" : "X",
+                    crd = record[s];
+                if (linked.all.indexOf(crd) == -1) {
+                    var notLinked = true;
+                    if (!notLinkedFirst) notLinkedFirst = true;
+                    else {
+                        var linkedCrd = linking(crd, sym, true);
+                        for (var i = 0; i < linkedCrd.length; i++)
+                            if (linked[sym].indexOf(linkedCrd[i]) > -1) {
+                                notLinked = false;
+                                relateLinker(crd, sym);
+                                break;
+                            }
+                    }
+                    if (notLinked)
+                        chessboard.chesses[crd].color = "red";
+                }
+            }
+            var spaceCrd = [];
+            for (var s in chessboard.chesses)
+                if (chessboard.chesses[s].symbol == "")
+                    spaceCrd.push(s);
+            for (var s = 0; s < spaceCrd.length; s++)
+                domainAssign(spaceCrd[s]);
+            for (var s = 0; s < domain.O.length; s++)
+                chessboard.chesses[domain.O[s]].background = "indianred";
+            for (var s = 0; s < domain.X.length; s++)
+                chessboard.chesses[domain.X[s]].background = "lightblue";
+        }
+        function relateLinker(crd, sym) {
+            var linkedCrd = linking(crd, sym, true);
+            if (linked[sym].indexOf(crd) > -1) return;
+            linked[sym].push(crd);
+            linked.all.push(crd);
+            for (var i = 0; i < linkedCrd.length; i++)
+                relateLinker(linkedCrd[i], sym);
+            return linkedCrd.length > 0;
+        }
+        function domainAssign(crd) {
+            chessboard.chesses[crd].background = "";
+            var dirArea = chessboard.chesses[crd].getChessesByRelCrd("O"),
+                belong = "unknown";
+            for (var s = 0; s < dirArea.length; s++) {
+                if (dirArea[s])
+                    belong =
+                        dirArea[s].symbol == "O" && dirArea[s].color != "red" ?
+                            belong == "X" ? "public" : "O"
+                            : dirArea[s].symbol == "X" && dirArea[s].color != "red" ?
+                                belong == "O" ? "public" : "X"
+                                : belong;
+            }
+            domain[belong].push(crd);
+        }
+        for (var s in chessboard.chesses) {
+            chessboard.chesses[s].setSpec = function () {
+                if (this.symbol != "") return false;
+                if (turn < 2) return true;
+                var sym = turn % 2 == 0 ? "O" : "X";
+                return linking(this, sym);
+            }
+            chessboard.chesses[s].setProc = function () {
+                var sym = turn % 2 == 0 ? "O" : "X";
+                this.symbol = sym;
+                turn++;
+                record.push(this.crd);
+                gameResult();
+            }
+        }
+    </script>
+</body>
+
+</html>
