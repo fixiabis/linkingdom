@@ -94,6 +94,15 @@
                 return this.getChessesByCrd("A:" + toChr(this.height + 64) + crd);
             return [this.chesses[crd]];
         }
+        clean() {
+            for (var s in this.chesses) {
+                var chess = this.chesses[s];
+                chess.color = "",
+                chess.background = "",
+                chess.opacity = "",
+                chess.symbol = "";
+            }
+        }
     }
     class Chess {
         constructor(crd, chessboard, view) {
@@ -103,7 +112,7 @@
                 setSpec: null,
                 setProc: null,
                 color: "",
-                opacity: 1,
+                opacity: "",
                 symbol: "",
                 background: ""
             };
