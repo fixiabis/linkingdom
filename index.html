@@ -22,7 +22,7 @@
 <body>
     <script>
         var turn = 0, record = [], linked = {}, domain = {},
-            chessboard = new Chessboard(10, 10, document.body);
+            chessboard = new Chessboard(19, 19, document.body);
         function linking(chess, sym, needList) {
             if (typeof chess == "string") return linking(chessboard.chesses[chess], sym, needList);
             var linkedCrd = [],
