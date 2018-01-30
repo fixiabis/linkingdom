@@ -23,7 +23,7 @@
     <script>
         var turn = 0, record = [], linked = {}, domain = {},
             nextLinkCrd = [],
-            chessboard = new Chessboard(15, 15, document.body);
+            chessboard = new Chessboard(9, 9, document.body);
         function linking(chess, sym, needList) {
             if (typeof chess == "string") return linking(chessboard.chesses[chess], sym, needList);
             if (typeof nextLinkCrd.indexOf(chess.crd) > -1) return true;
@@ -134,7 +134,7 @@
                     chess = chessboard.chesses[crd],
                     dirArea = chess.getChessesByRelCrd("O");
                 for (var i = 0; i < dirArea.length; i++) {
-                    if (!dirArea[i]) continue;
+                    if (!dirArea[i] || dirArea[i].color == "red") continue;
                     var sym = dirArea[i].symbol;
                     console.log("from " + crd + ", " + dirArea[i].crd + ", sym is: " + sym + ", now belong is " + belong);
                     belong = (sym == "O" && belong == "X") || (sym == "X" && belong == "O") ? "public" : sym != "" ? sym : belong;
