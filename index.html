@@ -10,7 +10,7 @@
     <style>
         html,
         body {
-            font-family: monospace;
+            font-family: "Courier New", Courier, monospace;
             width: 100%;
             height: 100%;
             margin: 0px;
@@ -21,11 +21,8 @@
 
 <body>
     <script>
-        var turn = 0,
-            record = [],
-            linked = {},
-            domain = {},
-            chessboard = new Chessboard(19, 19, document.body);
+        var turn = 0, record = [], linked = {}, domain = {},
+            chessboard = new Chessboard(10, 10, document.body);
         function linking(chess, sym, needList) {
             if (typeof chess == "string") return linking(chessboard.chesses[chess], sym, needList);
             var linkedCrd = [],
@@ -61,7 +58,7 @@
         }
         function gameResult() {
             linked = { O: [], X: [], all: [] };
-            domain = { O: [], X: [], public: [], unknown: [] };
+            domain = { O: [], X: [], public: [] };
             if (turn < 2) return;
             for (var s = 2; s < turn; s++) {
                 chessboard.chesses[record[s]].color = "";
@@ -92,16 +89,40 @@
                         chessboard.chesses[crd].color = "red";
                 }
             }
-            var spaceCrd = [];
+            var space = {
+                visited: [],
+                area: [],
+                crd: [],
+                count: 0
+            };
             for (var s in chessboard.chesses)
                 if (chessboard.chesses[s].symbol == "")
-                    spaceCrd.push(s);
-            for (var s = 0; s < spaceCrd.length; s++)
-                domainAssign(spaceCrd[s]);
+                    space.crd.push(s);
+            for (var s = 0; s < space.crd.length; s++)
+                spaceAssign(space, space.crd[s]);
+            
+                console.log(domain);
+            for (var s = 0; s < space.area.length; s++)
+                domainAssign(space.area[s]);
             for (var s = 0; s < domain.O.length; s++)
                 chessboard.chesses[domain.O[s]].background = "indianred";
             for (var s = 0; s < domain.X.length; s++)
                 chessboard.chesses[domain.X[s]].background = "lightblue";
+        }
+        function domainAssign(area) {
+            var belong = "unknown";
+            for (var s = 0; s < area.length; s++) {
+                var crd = area[s],
+                    chess = chessboard.chesses[crd],
+                    dirArea = chess.getChessesByRelCrd("O");
+                for (var i = 0; i < dirArea.length; i++) {
+                    if (!dirArea[i]) continue;
+                    var sym = dirArea[i].symbol;
+                    belong = sym == "O" && belong == "X" || sym == "X" && belong == "O" ? "public" : sym;
+                }
+                if (belong == "public") break;
+            }
+            if (domain[belong]) domain[belong] = domain[belong].concat(area);
         }
         function relateLinker(crd, sym) {
             var linkedCrd = linking(crd, sym, true);
@@ -112,20 +133,29 @@
                 relateLinker(linkedCrd[i], sym);
             return linkedCrd.length > 0;
         }
-        function domainAssign(crd) {
+        function spaceAssign(space, crd) {
+            var araIndex = -1;
             chessboard.chesses[crd].background = "";
-            var dirArea = chessboard.chesses[crd].getChessesByRelCrd("O"),
-                belong = "unknown";
-            for (var s = 0; s < dirArea.length; s++) {
-                if (dirArea[s])
-                    belong =
-                        dirArea[s].symbol == "O" && dirArea[s].color != "red" ?
-                            belong == "X" ? "public" : "O"
-                            : dirArea[s].symbol == "X" && dirArea[s].color != "red" ?
-                                belong == "O" ? "public" : "X"
-                                : belong;
+            if (space.visited.indexOf(crd) > -1) return;
+            space.visited.push(crd);
+            var dirArea = chessboard.chesses[crd].getChessesByRelCrd("O");
+            for (var s = 0; s < space.area.length; s++)
+                if (space.area[s].indexOf(crd) > -1) {
+                    araIndex = s;
+                    break;
+                }
+            if (araIndex == -1) {
+                araIndex = space.area.length;
+                space.area.push([crd]);
             }
-            domain[belong].push(crd);
+            for (var s = 0; s < dirArea.length; s++) {
+                if (!dirArea[s]) continue;
+                var spaceCrd = dirArea[s].crd;
+                if (dirArea[s].symbol == "" && space.visited.indexOf(spaceCrd) == -1) {
+                    space.area[araIndex].push(spaceCrd);
+                    spaceAssign(space, spaceCrd);
+                }
+            }
         }
         for (var s in chessboard.chesses) {
             chessboard.chesses[s].setSpec = function () {
