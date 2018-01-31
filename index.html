@@ -23,7 +23,7 @@
     <script>
         var turn = 0, record = [], linked = {}, domain = {},
             nextLinkCrd = [],
-            chessboard = new Chessboard(9, 9, document.body);
+            chessboard = new Chessboard(13, 13, document.body);
         function linking(chess, sym, needList) {
             if (typeof chess == "string") return linking(chessboard.chesses[chess], sym, needList);
             if (typeof nextLinkCrd.indexOf(chess.crd) > -1) return true;
@@ -104,10 +104,16 @@
                 spaceAssign(space, space.crd[s]);
             for (var s = 0; s < space.area.length; s++)
                 domainAssign(space.area[s]);
-            for (var s = 0; s < domain.O.length; s++)
-                chessboard.chesses[domain.O[s]].background = "indianred";
-            for (var s = 0; s < domain.X.length; s++)
-                chessboard.chesses[domain.X[s]].background = "lightblue";
+            for (var s = 0; s < domain.O.length; s++) {
+                var chess = chessboard.chesses[domain.O[s]];
+                if (chess.symbol == "")
+                    chess.background = "indianred";
+            }
+            for (var s = 0; s < domain.X.length; s++) {
+                var chess = chessboard.chesses[domain.X[s]];
+                if (chess.symbol == "")
+                    chess.background = "lightblue";
+            }
             var sym = turn % 2 == 0 ? "O" : "X", winner = "";
             nextLinkConfirm(sym);
             /* for (var s = 0; s < nextLinkCrd.length; s++)
@@ -136,7 +142,6 @@
                 for (var i = 0; i < dirArea.length; i++) {
                     if (!dirArea[i] || dirArea[i].color == "red") continue;
                     var sym = dirArea[i].symbol;
-                    console.log("from " + crd + ", " + dirArea[i].crd + ", sym is: " + sym + ", now belong is " + belong);
                     belong = (sym == "O" && belong == "X") || (sym == "X" && belong == "O") ? "public" : sym != "" ? sym : belong;
                     if (belong == "public") break;
                 }
@@ -172,7 +177,7 @@
             for (var s = 0; s < dirArea.length; s++) {
                 if (!dirArea[s]) continue;
                 var spaceCrd = dirArea[s].crd;
-                if (dirArea[s].symbol == "" && space.visited.indexOf(spaceCrd) == -1) {
+                if ((dirArea[s].symbol == "" || dirArea[s].color == "red") && space.visited.indexOf(spaceCrd) == -1) {
                     space.area[araIndex].push(spaceCrd);
                     spaceAssign(space, spaceCrd);
                 }
@@ -192,6 +197,13 @@
                 record.push(this.crd);
                 gameResult();
             }
+        }
+        window.onkeydown = function (evt) {
+            if (evt.which != 90) return;
+            var crd = record.pop();
+            turn--;
+            chessboard.chesses[crd].symbol = "";
+            gameResult();
         }
     </script>
 </body>
