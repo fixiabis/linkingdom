@@ -117,9 +117,12 @@
                 chessboard.chesses[nextLinkCrd[s]].background = "lightgray"; */
             if (nextLinkCrd.length == 0)
                 winner = (turn - 1) % 2 == 0 ? "O" : "X";
-            for (var s = 0; s < 2; s++)
-                if (domain[s % 2 == 0 ? "O" : "X"].length > domain.public.length / 2)
-                    winner = s % 2 == 0 ? "O" : "X";
+            for (var s = 0; s < 2; s++) {
+                var sym = s % 2 == 0 ? "O" : "X",
+                    oppSym = (s + 1) % 2 == 0 ? "O" : "X";
+                if (domain[sym].length > (domain.public.length + domain[oppSym].length) / 2)
+                    winner = sym;
+            }
             if (winner && confirm(winner + " is Win")) {
                 turn = 0;
                 chessboard.clean();
