@@ -51,9 +51,6 @@
                 if ((isSpace(HVChess) && (isSpace(SVChess) || isSpace(DSVChess))) || isSpace(DSVChess) && isSpace(DVChess))
                     linkedCrd.push(abnLinkChess[i].crd);
             }
-            var crds = "";
-            for (var i = 0; i < linkedCrd.length; i++)
-                crds += linkedCrd[i] + (linkedCrd.length - 1 == i ? "" : ",");
             if (needList) return linkedCrd;
             return linkedCrd.length > 0;
         }
