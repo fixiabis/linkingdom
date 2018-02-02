@@ -22,10 +22,16 @@
 <body>
     <script>
         var turn = 0, record = [], linked = {}, domain = {},
-            nextLinkCrd = [],
-            chessboard = new Chessboard(13, 13, document.body);
+            nextLinkCrd = [], userSym = "OXDRA".split(""), ignore = [],
+            chessboard = new Chessboard(9, 9, document.body),
+            playerCount = 3,
+            getUserSym = (val) => userSym[val % playerCount],
+            getUserSerial = (val) => userSym.indexOf(val);
         function linking(chess, sym, needList) {
-            if (typeof chess == "string") return linking(chessboard.chesses[chess], sym, needList);
+            if (typeof chess == "string") {
+                chess = chessboard.chesses[chess];
+                return linking(chess, sym, needList);
+            }
             if (typeof nextLinkCrd.indexOf(chess.crd) > -1) return true;
             var linkedCrd = [],
                 dirLinkChess = chess.getChessesByRelCrd("O"),
@@ -55,22 +61,34 @@
             return linkedCrd.length > 0;
         }
         function gameResult() {
-            linked = { O: [], X: [], all: [] };
-            domain = { O: [], X: [], public: [] };
-            if (turn < 2) return;
-            for (var s = 2; s < turn; s++) {
-                chessboard.chesses[record[s]].color = "";
-                chessboard.chesses[record[s]].background = "";
+            linked = { user: [], all: [] };
+            domain = { user: [], public: [], united: [] };
+            for (var s = 0; s < playerCount; s++) {
+                linked.user.push([]);
+                domain.user.push([]);
             }
-            for (var s = 0; s < 2; s++) {
-                relateLinker(record[s], s % 2 == 0 ? "O" : "X");
-                chessboard.chesses[record[s]].color = "blue";
-                chessboard.chesses[record[s]].background = "";
+            if (turn < playerCount) return;
+            for (var s = playerCount; s < turn; s++) {
+                if (!record[s]) continue;
+                var chess = chessboard.chesses[record[s]];
+                chess.title = chess.crd;
+                chess.color = "";
+                chess.background = "";
+            }
+            for (var s = 0; s < playerCount; s++) {
+                var sym = getUserSym(s),
+                    chess = chessboard.chesses[record[s]];
+                relateLinker(record[s], sym);
+                chess.title = `${chess.crd}:root`;
+                chess.color = "blue";
+                chess.background = "";
             }
             nextLinkCrd = [];
             var notLinkedFirst = false;
-            for (var s = 2; s < turn; s++) {
-                var sym = s % 2 == 0 ? "O" : "X",
+            for (var s = playerCount; s < turn; s++) {
+                if (!record[s]) continue;
+                var sym = getUserSym(s),
+                    serial = s % playerCount,
                     crd = record[s];
                 if (linked.all.indexOf(crd) == -1) {
                     var notLinked = true;
@@ -78,22 +96,21 @@
                     else {
                         var linkedCrd = linking(crd, sym, true);
                         for (var i = 0; i < linkedCrd.length; i++)
-                            if (linked[sym].indexOf(linkedCrd[i]) > -1) {
+                            if (linked.user[serial].indexOf(linkedCrd[i]) > -1) {
                                 notLinked = false;
                                 relateLinker(crd, sym);
                                 break;
                             }
                     }
-                    if (notLinked)
-                        chessboard.chesses[crd].color = "red";
+                    if (notLinked) {
+                        var chess = chessboard.chesses[crd];
+                        chess.title = `${chess.crd}:linked failed`;
+                        chess.color = "red";
+                    }
                 }
             }
-            var space = {
-                visited: [],
-                area: [],
-                crd: [],
-                count: 0
-            };
+            var space = { visited: [], area: [], crd: [], count: 0 },
+                userAreaColor = ["indianred", "lightblue", "khaki", "seagreen", "mediumslateblue"];
             for (var s in chessboard.chesses)
                 if (chessboard.chesses[s].symbol == "")
                     space.crd.push(s);
@@ -101,38 +118,59 @@
                 spaceAssign(space, space.crd[s]);
             for (var s = 0; s < space.area.length; s++)
                 domainAssign(space.area[s]);
-            for (var s = 0; s < domain.O.length; s++) {
-                var chess = chessboard.chesses[domain.O[s]];
-                if (chess.symbol == "")
-                    chess.background = "indianred";
+            for (var s = 0; s < domain.user.length; s++)
+                for (var i = 0; i < domain.user[s].length; i++) {
+                    var crd = domain.user[s][i],
+                        sym = getUserSym(s),
+                        chess = chessboard.chesses[crd];
+                    if (chess.symbol != "") continue;
+                    chess.title = `${chess.crd}:${sym}'s`;
+                    chess.background = userAreaColor[s];
+                }
+            for (var s = 0; s < domain.united.length; s++) {
+                var area = domain.united[s].area;
+                for (var i = 0; i < area.length; i++) {
+                    var chess = chessboard.chesses[area[i]];
+                    if (chess.symbol != "") continue;
+                    chess.title = `${chess.crd}:${domain.united[s].of}'s`;
+                    chess.background = "coral";
+                }
             }
-            for (var s = 0; s < domain.X.length; s++) {
-                var chess = chessboard.chesses[domain.X[s]];
-                if (chess.symbol == "")
-                    chess.background = "lightblue";
-            }
-            var sym = turn % 2 == 0 ? "O" : "X", winner = "";
+            var sym = getUserSym(turn), winner = "";
             nextLinkConfirm(sym);
             /* for (var s = 0; s < nextLinkCrd.length; s++)
                 chessboard.chesses[nextLinkCrd[s]].background = "lightgray"; */
-            if (nextLinkCrd.length == 0)
-                winner = (turn - 1) % 2 == 0 ? "O" : "X";
-            for (var s = 0; s < 2; s++) {
-                var sym = s % 2 == 0 ? "O" : "X",
-                    oppSym = (s + 1) % 2 == 0 ? "O" : "X";
-                if (domain[sym].length > (domain.public.length + domain[oppSym].length) / 2)
-                    winner = sym;
+            while (nextLinkCrd.length == 0) {
+                var noSetNextSym = nextLinkCrd.length == 0,
+                    isLose = ignore.indexOf(sym) > -1;
+                if (noSetNextSym && !isLose) {
+                    ignore.push(sym);
+                    isLose = true;
+                }
+                if (noSetNextSym && isLose) {
+                    turn++;
+                    record.push("");
+                    sym = getUserSym(turn);
+                    nextLinkConfirm(sym);
+                }
+                if (ignore.length == playerCount) break;
             }
-            if (winner && confirm(winner + " is Win")) {
+            if (ignore.length == playerCount - 1)
+                for (var s = 0; s < playerCount; s++)
+                    if (ignore.indexOf(userSym[s]) < 0)
+                        winner = userSym[s];
+            if ((winner && confirm(winner + " is win")) || ignore.length == playerCount && confirm("no winner")) {
                 turn = 0;
                 chessboard.clean();
                 record = [];
             }
         }
         function nextLinkConfirm(sym) {
-            for (var s in chessboard.chesses)
-                if (linking(chessboard.chesses[s], sym))
+            for (var s in chessboard.chesses) {
+                var chess = chessboard.chesses[s];
+                if (linking(chess, sym) && chess.symbol == "")
                     nextLinkCrd.push(s);
+            }
         }
         function domainAssign(area) {
             var belong = "unknown";
@@ -143,18 +181,33 @@
                 for (var i = 0; i < dirArea.length; i++) {
                     if (!dirArea[i] || dirArea[i].color == "red") continue;
                     var sym = dirArea[i].symbol;
-                    belong = (sym == "O" && belong == "X") || (sym == "X" && belong == "O") ? "public" : sym != "" ? sym : belong;
+                    if (sym != "")
+                        if (belong != sym && belong != "unknown") {
+                            if (belong.search(sym) < 0) belong += sym;
+                        } else if (belong == "unknown") belong = sym;
+                    if (belong.length == playerCount) belong = "public";
                     if (belong == "public") break;
                 }
                 if (belong == "public") break;
             }
-            belong = belong == "unknown" ? "public" : belong;
-            domain[belong] = domain[belong].concat(area);
+            if (belong.match(/unknown|public/))
+                domain.public = domain.public.concat(area);
+            else {
+                belong = belong.split("").sort((a, b) => userSym.indexOf(a) > userSym.indexOf(b)).join(",");
+                var serial = getUserSerial(belong), united = false;
+                if (serial < 0) {
+                    domain.united.map(function (val) {
+                        if (val.of == belong) united = true, val.area = val.area.concat(area);
+                    });
+                    if (!united) domain.united.push({ of: belong, area: area });
+                } else domain.user[serial] = domain.user[serial].concat(area);
+            }
         }
         function relateLinker(crd, sym) {
-            var linkedCrd = linking(crd, sym, true);
-            if (linked[sym].indexOf(crd) > -1) return;
-            linked[sym].push(crd);
+            var linkedCrd = linking(crd, sym, true),
+                serial = getUserSerial(sym);
+            if (linked.user[serial].indexOf(crd) > -1) return;
+            linked.user[serial].push(crd);
             linked.all.push(crd);
             for (var i = 0; i < linkedCrd.length; i++)
                 relateLinker(linkedCrd[i], sym);
@@ -185,28 +238,50 @@
             }
         }
         for (var s in chessboard.chesses) {
-            chessboard.chesses[s].setSpec = function () {
+            var chess = chessboard.chesses[s];
+            chess.setSpec = function () {
                 if (this.symbol != "") return false;
-                if (turn < 2) return true;
-                var sym = turn % 2 == 0 ? "O" : "X";
+                if (turn < playerCount) return true;
+                var sym = getUserSym(turn);
                 return linking(this, sym);
             }
-            chessboard.chesses[s].setProc = function () {
-                var sym = turn % 2 == 0 ? "O" : "X";
+            chess.setProc = function () {
+                var sym = getUserSym(turn);
                 this.symbol = sym;
                 turn++;
                 record.push(this.crd);
                 gameResult();
             }
+            chess.view.onmouseover = function () {
+                if (!domain.user || !domain.united) return;
+                var area = [];
+                if (this.title.search("\'s") > -1) {
+                    var isOf = this.title.replace(`${this.id}:`, "").replace("'s", "");
+                    area = isOf.length == 1 ?
+                        domain.user[getUserSerial(isOf)] :
+                        domain.united.filter((val) => val.of == isOf)[0].area;
+                }
+                for (var s in chessboard.chesses) {
+                    var chess = chessboard.chesses[s];
+                    if (area.indexOf(chess.crd) > -1 && chess.symbol == "") chess.view.classList.add("flash");
+                    else chess.view.classList.remove("flash");
+                }
+            }
         }
         window.onkeydown = function (evt) {
             if (evt.which != 90) return;
             var crd = record.pop();
-            if (!chessboard.chesses[crd]) return;
+            if (typeof crd == "undefined") return;
             turn--;
-            chessboard.chesses[crd].symbol = "";
+            if (crd == "")
+                while (crd == "") {
+                    turn--;
+                    crd = record.pop();
+                }
+            if (chessboard.chesses[crd])
+                chessboard.chesses[crd].symbol = "";
             gameResult();
-        }
+        };
     </script>
 </body>
 

@@ -27,7 +27,6 @@
                         crd = toChr(col + 65) + (row + 1);
                     boardCol.className = "ChessGame-col";
                     chess.className = "ChessGame-chs";
-                    chess.title = crd;
                     chess.id = crd;
                     this.chesses[crd] = new Chess(crd, this, chess);
                     boardCol.appendChild(chess);
@@ -97,6 +96,7 @@
         clean() {
             for (var s in this.chesses) {
                 var chess = this.chesses[s];
+                chess.title = chess.crd;
                 chess.color = "",
                 chess.background = "",
                 chess.opacity = "",
@@ -111,23 +111,30 @@
             this._ = {
                 setSpec: null,
                 setProc: null,
+                title: crd,
                 color: "",
                 opacity: "",
                 symbol: "",
                 background: ""
             };
             this.view = view;
+            this.view.title = crd;
             this.view.addEventListener("click", function () {
                 if (!this._.setSpec || this._.setSpec.bind(this)(this.crd))
                     if (this._.setProc) this._.setProc.bind(this)(this.crd);
             }.bind(this));
         }
+        get title() {return this._.title; }
         get color() { return this._.color; }
         get opacity() { return this._.opacity; }
         get symbol() { return this._.symbol; }
         get background() { return this._.background; }
         get setSpec() { return this._.setSpec; }
         get setProc() { return this._.setProc; }
+        set title(val) {
+            this.view.title = val;
+            return this._.title = val;
+        }
         set color(val) {
             this.view.style.color = val;
             return this._.color = val;
