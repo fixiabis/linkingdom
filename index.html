@@ -23,7 +23,7 @@
     <script>
         var turn = 0, record = [], linked = {}, domain = {},
             nextLinkCrd = [], userSym = "OXDRA".split(""), ignore = [],
-            chessboard = new Chessboard(9, 9, document.body),
+            chessboard = new Chessboard(19, 19, document.body),
             playerCount = 3,
             getUserSym = (val) => userSym[val % playerCount],
             getUserSerial = (val) => userSym.indexOf(val);
