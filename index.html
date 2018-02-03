@@ -23,8 +23,8 @@
     <script>
         var turn = 0, record = [], linked = {}, domain = {},
             nextLinkCrd = [], userSym = "OXDRA".split(""), ignore = [],
-            chessboard = new Chessboard(19, 19, document.body),
-            playerCount = 3,
+            chessboard = new Chessboard(prompt("width"), prompt("height"), document.body),
+            playerCount = prompt("players"),
             getUserSym = (val) => userSym[val % playerCount],
             getUserSerial = (val) => userSym.indexOf(val);
         function linking(chess, sym, needList) {
