@@ -3,292 +3,99 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximun-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Linkingdom</title>
-    <link rel="stylesheet" href="css/ChessGame.css" />
+    <title>linkingdom</title>
     <style>
-        html,
-        body {
-            font-family: "Courier New", Courier, monospace;
+        form {
+            width: 150px;
+            height: 100px;
+            margin-left: auto;
+            margin-right: auto; 
+        }
+        select {
+            float: right;
+        }
+        [type=submit] {
             width: 100%;
-            height: 100%;
-            margin: 0px;
         }
     </style>
-    <script src="js/ChessGame.js"></script>
 </head>
 
 <body>
-    <script>
-        function getSearchValue(name) {
-            var search = location.search.substr(1, location.search.length).split("&").map((val) => val.split("="));
-            return search.filter((val) => val[0] == name)[0][1];
-        }
-        var turn = 0, record = [], linked = {}, domain = {},
-            nextLinkCrd = [], userSym = "OXDRA".split(""), ignore = [],
-            chessboard = new Chessboard(getSearchValue("width"), getSearchValue("height"), document.body),
-            playerCount = getSearchValue("players"),
-            getUserSym = (val) => userSym[val % playerCount],
-            getUserSerial = (val) => userSym.indexOf(val);
-
-        function linking(chess, sym, needList) {
-            if (typeof chess == "string") {
-                chess = chessboard.chesses[chess];
-                return linking(chess, sym, needList);
-            }
-            if (typeof nextLinkCrd.indexOf(chess.crd) > -1) return true;
-            var linkedCrd = [],
-                dirLinkChess = chess.getChessesByRelCrd("O"),
-                rmtLinkChess = chess.getChessesByRelCrd("2O"),
-                abnLinkChess = chess.getChessesByRelCrd("IIH,IHH"),
-                isOwner = (chess) => chess && chess.symbol == sym && chess.color != "red",
-                isSpace = (chess) => chess && ((chess.symbol == "" || chess.symbol == sym) || chess.color == "red");
-            for (var i = 0; i < dirLinkChess.length; i++)
-                if (isOwner(dirLinkChess[i]))
-                    linkedCrd.push(dirLinkChess[i].crd);
-            for (var i = 0; i < rmtLinkChess.length; i++) {
-                if (!isOwner(rmtLinkChess[i])) continue;
-                if (isSpace(dirLinkChess[i]))
-                    linkedCrd.push(rmtLinkChess[i].crd);
-            }
-            for (var i = 0; i < abnLinkChess.length; i++) {
-                if (!isOwner(abnLinkChess[i])) continue;
-                var relCrd = chess.getRelCrdByChess(abnLinkChess[i]),
-                    SVChess = chess.getChessByRelCrd(relCrd.replace(/2./, "")),
-                    DVChess = chess.getChessByRelCrd(relCrd.replace(/1./, "")),
-                    DSVChess = chess.getChessByRelCrd(relCrd.replace(/1./, "").replace("2", "1")),
-                    HVChess = chess.getChessByRelCrd(relCrd.replace("2", "1").replace(/1/g, ""));
-                if ((isSpace(HVChess) && (isSpace(SVChess) || isSpace(DSVChess))) || isSpace(DSVChess) && isSpace(DVChess))
-                    linkedCrd.push(abnLinkChess[i].crd);
-            }
-            if (needList) return linkedCrd;
-            return linkedCrd.length > 0;
-        }
-        function gameResult() {
-            linked = { user: [], all: [] };
-            domain = { user: [], public: [], united: [] };
-            for (var s = 0; s < playerCount; s++) {
-                linked.user.push([]);
-                domain.user.push([]);
-            }
-            if (turn < playerCount) return;
-            for (var s = playerCount; s < turn; s++) {
-                if (!record[s]) continue;
-                var chess = chessboard.chesses[record[s]];
-                chess.title = chess.crd;
-                chess.color = "";
-                chess.background = "";
-            }
-            for (var s = 0; s < playerCount; s++) {
-                var sym = getUserSym(s),
-                    chess = chessboard.chesses[record[s]];
-                relateLinker(record[s], sym);
-                chess.title = `${chess.crd}:root`;
-                chess.color = "blue";
-                chess.background = "";
-            }
-            nextLinkCrd = [];
-            var notLinkedFirst = false;
-            for (var s = playerCount; s < turn; s++) {
-                if (!record[s]) continue;
-                var sym = getUserSym(s),
-                    serial = s % playerCount,
-                    crd = record[s];
-                if (linked.all.indexOf(crd) == -1) {
-                    var notLinked = true;
-                    if (!notLinkedFirst) notLinkedFirst = true;
-                    else {
-                        var linkedCrd = linking(crd, sym, true);
-                        for (var i = 0; i < linkedCrd.length; i++)
-                            if (linked.user[serial].indexOf(linkedCrd[i]) > -1) {
-                                notLinked = false;
-                                relateLinker(crd, sym);
-                                break;
-                            }
-                    }
-                    if (notLinked) {
-                        var chess = chessboard.chesses[crd];
-                        chess.title = `${chess.crd}:linked failed`;
-                        chess.color = "red";
-                    }
-                }
-            }
-            var space = { visited: [], area: [], crd: [], count: 0 },
-                userAreaColor = ["indianred", "lightblue", "khaki", "seagreen", "mediumslateblue"];
-            for (var s in chessboard.chesses)
-                if (chessboard.chesses[s].symbol == "")
-                    space.crd.push(s);
-            for (var s = 0; s < space.crd.length; s++)
-                spaceAssign(space, space.crd[s]);
-            for (var s = 0; s < space.area.length; s++)
-                domainAssign(space.area[s]);
-            for (var s = 0; s < domain.user.length; s++)
-                for (var i = 0; i < domain.user[s].length; i++) {
-                    var crd = domain.user[s][i],
-                        sym = getUserSym(s),
-                        chess = chessboard.chesses[crd];
-                    if (chess.symbol != "") continue;
-                    chess.title = `${chess.crd}:${sym}'s`;
-                    chess.background = userAreaColor[s];
-                }
-            for (var s = 0; s < domain.united.length; s++) {
-                var area = domain.united[s].area;
-                for (var i = 0; i < area.length; i++) {
-                    var chess = chessboard.chesses[area[i]];
-                    if (chess.symbol != "") continue;
-                    chess.title = `${chess.crd}:${domain.united[s].of}'s`;
-                    chess.background = "coral";
-                }
-            }
-            var sym = getUserSym(turn), winner = "";
-            nextLinkConfirm(sym);
-            /* for (var s = 0; s < nextLinkCrd.length; s++)
-                chessboard.chesses[nextLinkCrd[s]].background = "lightgray"; */
-            while (nextLinkCrd.length == 0) {
-                var noSetNextSym = nextLinkCrd.length == 0,
-                    isLose = ignore.indexOf(sym) > -1;
-                if (noSetNextSym && !isLose) {
-                    ignore.push(sym);
-                    isLose = true;
-                }
-                if (noSetNextSym && isLose) {
-                    turn++;
-                    record.push("");
-                    sym = getUserSym(turn);
-                    nextLinkConfirm(sym);
-                }
-                if (ignore.length == playerCount) break;
-            }
-            if (ignore.length == playerCount - 1)
-                for (var s = 0; s < playerCount; s++)
-                    if (ignore.indexOf(userSym[s]) < 0)
-                        winner = userSym[s];
-            if ((winner && confirm(winner + " is win")) || ignore.length == playerCount && confirm("no winner")) {
-                turn = 0;
-                chessboard.clean();
-                record = [];
-            }
-        }
-        function nextLinkConfirm(sym) {
-            for (var s in chessboard.chesses) {
-                var chess = chessboard.chesses[s];
-                if (linking(chess, sym) && chess.symbol == "")
-                    nextLinkCrd.push(s);
-            }
-        }
-        function domainAssign(area) {
-            var belong = "unknown";
-            for (var s = 0; s < area.length; s++) {
-                var crd = area[s],
-                    chess = chessboard.chesses[crd],
-                    dirArea = chess.getChessesByRelCrd("O");
-                for (var i = 0; i < dirArea.length; i++) {
-                    if (!dirArea[i] || dirArea[i].color == "red") continue;
-                    var sym = dirArea[i].symbol;
-                    if (sym != "")
-                        if (belong != sym && belong != "unknown") {
-                            if (belong.search(sym) < 0) belong += sym;
-                        } else if (belong == "unknown") belong = sym;
-                    if (belong.length == playerCount) belong = "public";
-                    if (belong == "public") break;
-                }
-                if (belong == "public") break;
-            }
-            if (belong.match(/unknown|public/))
-                domain.public = domain.public.concat(area);
-            else {
-                belong = belong.split("").sort((a, b) => userSym.indexOf(a) > userSym.indexOf(b)).join(",");
-                var serial = getUserSerial(belong), united = false;
-                if (serial < 0) {
-                    domain.united.map(function (val) {
-                        if (val.of == belong) united = true, val.area = val.area.concat(area);
-                    });
-                    if (!united) domain.united.push({ of: belong, area: area });
-                } else domain.user[serial] = domain.user[serial].concat(area);
-            }
-        }
-        function relateLinker(crd, sym) {
-            var linkedCrd = linking(crd, sym, true),
-                serial = getUserSerial(sym);
-            if (linked.user[serial].indexOf(crd) > -1) return;
-            linked.user[serial].push(crd);
-            linked.all.push(crd);
-            for (var i = 0; i < linkedCrd.length; i++)
-                relateLinker(linkedCrd[i], sym);
-            return linkedCrd.length > 0;
-        }
-        function spaceAssign(space, crd) {
-            var araIndex = -1;
-            chessboard.chesses[crd].background = "";
-            if (space.visited.indexOf(crd) > -1) return;
-            space.visited.push(crd);
-            var dirArea = chessboard.chesses[crd].getChessesByRelCrd("O");
-            for (var s = 0; s < space.area.length; s++)
-                if (space.area[s].indexOf(crd) > -1) {
-                    araIndex = s;
-                    break;
-                }
-            if (araIndex == -1) {
-                araIndex = space.area.length;
-                space.area.push([crd]);
-            }
-            for (var s = 0; s < dirArea.length; s++) {
-                if (!dirArea[s]) continue;
-                var spaceCrd = dirArea[s].crd;
-                if ((dirArea[s].symbol == "" || dirArea[s].color == "red") && space.visited.indexOf(spaceCrd) == -1) {
-                    space.area[araIndex].push(spaceCrd);
-                    spaceAssign(space, spaceCrd);
-                }
-            }
-        }
-        for (var s in chessboard.chesses) {
-            var chess = chessboard.chesses[s];
-            chess.setSpec = function () {
-                if (this.symbol != "") return false;
-                if (turn < playerCount) return true;
-                var sym = getUserSym(turn);
-                return linking(this, sym);
-            }
-            chess.setProc = function () {
-                var sym = getUserSym(turn);
-                this.symbol = sym;
-                this.view.classList.remove("flash");
-                turn++;
-                record.push(this.crd);
-                gameResult();
-            }
-            chess.view.onmouseover = function () {
-                if (!domain.user || !domain.united) return;
-                var area = [];
-                if (this.title.search("\'s") > -1) {
-                    var isOf = this.title.replace(`${this.id}:`, "").replace("'s", "");
-                    area = isOf.length == 1 ?
-                        domain.user[getUserSerial(isOf)] :
-                        domain.united.filter((val) => val.of == isOf)[0].area;
-                }
-                for (var s in chessboard.chesses) {
-                    var chess = chessboard.chesses[s];
-                    if (area.indexOf(chess.crd) > -1 && chess.symbol == "") chess.view.classList.add("flash");
-                    else chess.view.classList.remove("flash");
-                }
-            }
-        }
-        window.onkeydown = function (evt) {
-            if (evt.which != 90) return;
-            var crd = record.pop();
-            if (typeof crd == "undefined") return;
-            turn--;
-            if (crd == "")
-                while (crd == "") {
-                    turn--;
-                    crd = record.pop();
-                }
-            if (chessboard.chesses[crd])
-                chessboard.chesses[crd].symbol = "";
-            gameResult();
-        };
-    </script>
+    <form action="chess.html">
+        <div>
+            遊玩人數：
+            <select name="players">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+            </select>
+        </div>
+        <div>
+            長度：
+            <select name="height">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+                <option value="8">8</option>
+                <option value="9">9</option>
+                <option value="10">10</option>
+                <option value="11">11</option>
+                <option value="12">12</option>
+                <option value="13">13</option>
+                <option value="14">14</option>
+                <option value="15">15</option>
+                <option value="16">16</option>
+                <option value="17">17</option>
+                <option value="18">18</option>
+                <option value="19">19</option>
+                <option value="20">20</option>
+                <option value="21">21</option>
+                <option value="22">22</option>
+                <option value="23">23</option>
+                <option value="24">24</option>
+                <option value="25">25</option>
+            </select>
+        </div>
+        <div>
+            寬度：
+            <select name="width">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+                <option value="8">8</option>
+                <option value="9">9</option>
+                <option value="10">10</option>
+                <option value="11">11</option>
+                <option value="12">12</option>
+                <option value="13">13</option>
+                <option value="14">14</option>
+                <option value="15">15</option>
+                <option value="16">16</option>
+                <option value="17">17</option>
+                <option value="18">18</option>
+                <option value="19">19</option>
+                <option value="20">20</option>
+                <option value="21">21</option>
+                <option value="22">22</option>
+                <option value="23">23</option>
+                <option value="24">24</option>
+                <option value="25">25</option>
+            </select>
+        </div>
+        <input type="submit" value="送出" />
+    </form>
 </body>
 
 </html>
