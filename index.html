@@ -21,12 +21,17 @@
 
 <body>
     <script>
+        function getSearchValue(name) {
+            var search = location.search.substr(1, location.search.length).split("&").map((val) => val.split("="));
+            return search.filter((val) => val[0] == name)[0][1];
+        }
         var turn = 0, record = [], linked = {}, domain = {},
             nextLinkCrd = [], userSym = "OXDRA".split(""), ignore = [],
-            chessboard = new Chessboard(prompt("width"), prompt("height"), document.body),
-            playerCount = prompt("players"),
+            chessboard = new Chessboard(getSearchValue("width"), getSearchValue("height"), document.body),
+            playerCount = getSearchValue("players"),
             getUserSym = (val) => userSym[val % playerCount],
             getUserSerial = (val) => userSym.indexOf(val);
+
         function linking(chess, sym, needList) {
             if (typeof chess == "string") {
                 chess = chessboard.chesses[chess];
@@ -248,6 +253,7 @@
             chess.setProc = function () {
                 var sym = getUserSym(turn);
                 this.symbol = sym;
+                this.view.classList.remove("flash");
                 turn++;
                 record.push(this.crd);
                 gameResult();
