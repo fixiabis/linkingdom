@@ -50,7 +50,10 @@
             data = data.val();
             onlineCommand = true;
             for (var s = record.length; s < data.length; s++)
-                chessboard.chesses[data[s].crd].view.click();
+                if (data[s].crd)
+                    chessboard.chesses[data[s].crd].view.click();
+                else
+                    record.push("");
             onlineCommand = false;
         });
         function uploadData(crd) {
@@ -308,20 +311,6 @@
                 }
             }
         }
-        window.onkeydown = function (evt) {
-            if (evt.which != 90) return;
-            var crd = record.pop();
-            if (typeof crd == "undefined") return;
-            turn--;
-            if (crd == "")
-                while (crd == "") {
-                    turn--;
-                    crd = record.pop();
-                }
-            if (chessboard.chesses[crd])
-                chessboard.chesses[crd].symbol = "";
-            gameResult();
-        };
     </script>
 </body>
 
