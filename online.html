@@ -50,7 +50,7 @@
             data = data.val();
             onlineCommand = true;
             for (var s = record.length; s < data.length; s++)
-                if (data[s].crd)
+                if (data[s] && data[s].crd)
                     chessboard.chesses[data[s].crd].view.click();
                 else
                     record.push("");
