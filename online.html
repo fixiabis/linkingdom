@@ -38,29 +38,69 @@
             var search = location.search.substr(1, location.search.length).split("&").map((val) => val.split("="));
             return search.filter((val) => val[0] == name)[0][1];
         }
+        function createId() {
+            var rndCode = "",
+                toChr = function (val) { return String.fromCharCode(val) },
+                Rnd = function (val) { return Math.random() },
+                id = "";
+            for (var i = 0; i < 26; i++) rndCode += toChr(i + 65) + toChr(i + 97);
+            for (var i = 0; i < 10; i++) rndCode += i;
+            for (var i = 0; i < 30; i++)
+                id += rndCode[Math.floor(Rnd() * rndCode.length)];
+            return id;
+        }
         var turn = 0, record = [], linked = {}, domain = {},
             nextLinkCrd = [], userSym = "OXDRA".split(""), ignore = [],
-            chessboard = new Chessboard(getSearchValue("width"), getSearchValue("height"), document.body),
-            playerCount = getSearchValue("players"),
+            chessboard = new Chessboard(15, 15, document.body),
+            playerCount = 2,
             onlineCommand = false,
+            onlineUserSym = "",
+            onlineGameId = "",
             getUserSym = (val) => userSym[val % playerCount],
             getUserSerial = (val) => userSym.indexOf(val);
-
-        firebase.database().ref(getSearchValue("id")).on("value", function (data) {
+        firebase.database().ref("availble").once("value", function (data) {
             data = data.val();
-            onlineCommand = true;
-            for (var s = record.length; s < data.length; s++)
-                if (data[s] && data[s].crd)
-                    chessboard.chesses[data[s].crd].view.click();
-                else
-                    record.push("");
-            onlineCommand = false;
+            var id = "";
+            for (var i in data) {
+                id = i;
+                firebase.database().ref(`availble/${id}`).remove();
+                break;
+            }
+            if (!id) signOnlineRoom(createId());
+            else onlineGameStart(id, "O");
         });
+        function signOnlineRoom(id) {
+            firebase.database().ref(`availble/${id}`).once("value", function (data) {
+                if (data.val() != null) signOnlineRoom(createId());
+                else {
+                    updateObj = {};
+                    updateObj[id] = true;
+                    firebase.database().ref("availble").update(updateObj, function () {
+                        onlineGameStart(id, "X");
+                    });
+                }
+            });
+        }
+        function onlineGameStart(id, sym) {
+            onlineGameId = id;
+            onlineUserSym = sym;
+            firebase.database().ref(id).on("value", function (data) {
+                data = data.val();
+                if (!data) data = [];
+                onlineCommand = true;
+                for (var s = record.length; s < data.length; s++)
+                    if (data[s] && data[s].crd)
+                        chessboard.chesses[data[s].crd].view.click();
+                    else
+                        record.push("");
+                onlineCommand = false;
+            });
+        }
         function uploadData(crd) {
             if (crd == "clean")
-                firebase.database().ref(getSearchValue("id")).remove();
+                firebase.database().ref(onlineGameId).remove();
             else
-                firebase.database().ref(getSearchValue("id") + "/" + (turn - 1)).update({
+                firebase.database().ref(onlineGameId + "/" + (turn - 1)).update({
                     crd: crd
                 });
         }
@@ -279,11 +319,10 @@
         for (var s in chessboard.chesses) {
             var chess = chessboard.chesses[s];
             chess.setSpec = function () {
+                var sym = getUserSym(turn);
+                if (sym != onlineUserSym && !onlineCommand) return false;
                 if (this.symbol != "") return false;
                 if (turn < playerCount) return true;
-                var sym = getUserSym(turn);
-                if (sym != getSearchValue("sym") && !onlineCommand)
-                    return false;
                 return linking(this, sym);
             }
             chess.setProc = function () {

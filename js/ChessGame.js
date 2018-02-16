@@ -18,10 +18,10 @@
                 this.view.style.width = width * 60 + "px";
                 this.view.style.height = height * 60 + "px";
                 this.view.className = "ChessGame-brd";
-                for (var row = 0; row < width; row++) {
+                for (var row = 0; row < height; row++) {
                     var boardRow = createDiv();
                     boardRow.className = "ChessGame-row";
-                    for (var col = 0; col < height; col++) {
+                    for (var col = 0; col < width; col++) {
                         var boardCol = createDiv(),
                             chess = createDiv(),
                             crd = toChr(col + 65) + (row + 1);
