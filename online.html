@@ -15,6 +15,20 @@
             height: 100%;
             margin: 0px;
         }
+
+        .cover {
+            z-index: 1000;
+            color: #fff;
+            font-size: 10vh;
+            line-height: 100vh;
+            text-align: center;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.6);
+            position: fixed;
+            top: 0px;
+            left: 0px;
+        }
     </style>
     <script src="js/ChessGame.js"></script>
     <script src="https://www.gstatic.com/firebasejs/4.9.1/firebase.js"></script>
@@ -33,6 +47,7 @@
 </head>
 
 <body>
+    <div class="cover">Please wait</div>
     <script>
         function getSearchValue(name) {
             var search = location.search.substr(1, location.search.length).split("&").map((val) => val.split("="));
@@ -67,8 +82,15 @@
                 break;
             }
             if (!id) signOnlineRoom(createId());
-            else onlineGameStart(id, "O");
+            else {
+                onlineGameStart(id, "O");
+                removeCover();
+            }
         });
+        function removeCover() {
+            var cover = document.getElementsByClassName("cover")[0];
+            document.body.removeChild(cover);
+        }
         function signOnlineRoom(id) {
             firebase.database().ref(`availble/${id}`).once("value", function (data) {
                 if (data.val() != null) signOnlineRoom(createId());
@@ -77,6 +99,9 @@
                     updateObj[id] = true;
                     firebase.database().ref("availble").update(updateObj, function () {
                         onlineGameStart(id, "X");
+                    });
+                    firebase.database().ref(`availble/${id}`).on("value", function (data) {
+                        if (data.val() == null) removeCover();
                     });
                 }
             });
